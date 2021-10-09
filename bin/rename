@@ -1,0 +1,73 @@
+#!/usr/bin/env node
+
+const fs = require("fs");
+const path = require("path");
+
+const [cmd, file, packageName] = process.argv;
+
+const packagePath = path.join(__dirname, '../package.json');
+
+console.log({cmd, file, packageName, packagePath});
+
+function safeParseJson(str) {
+    try {
+        const jsonObj = JSON.parse(str);
+        return jsonObj != null && typeof jsonObj == 'object' ? jsonObj : {};
+    } catch (error) {
+        console.log('Error while parsing json: ', error);
+        return {};
+    }
+}
+
+function replaceText(find, text, file) {
+    const filePath = path.join(__dirname, file);
+    const fileText = fs.readFileSync(filePath).toString();
+    fs.writeFile(filePath, fileText.replace(find, text), (error) => {
+        if (error) {
+            console.log('error: ', error);
+        }
+        console.log(`File ${filePath} has updated successfully`);
+    });
+}
+
+try {
+    let oldName;
+    if (!packageName) {
+        return console.log("The {name} is required to rename package.json -> name");
+    }
+
+    if (!fs.existsSync(packagePath)) {
+        return console.log("This project does't have package.json");
+    }
+  
+    const package = safeParseJson(fs.readFileSync(packagePath).toString());
+
+    oldName = package.name;
+    package.name = packageName;
+
+    fs.writeFileSync('./package.json', JSON.stringify(package, null, 2));
+
+    replaceText(oldName, packageName, './www');
+    replaceText(oldName, packageName, '../config/app.js');
+    replaceText(oldName, packageName, '../config/database.js');
+    replaceText(oldName, packageName, '../database/models/index.js');
+    
+} catch (error) {
+    console.log(error);
+}
+
+// const readline = require('readline').createInterface({
+//     input: process.stdin,
+//     output: process.stdout
+// });
+// readline.question(`What's source project name?`, name => {
+//     console.log(`It's ${name}!`);
+//     readline.close()
+// });
+
+// const question = util.promisify(readline.question).bind(readline);
+// await question(`What's source project name?`, name => {
+//     console.log(`It's ${name}!`);
+//     readline.close()
+//     return name;
+// });
