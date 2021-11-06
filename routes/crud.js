@@ -1,7 +1,9 @@
 const express = require('express');
+const converter = require('sequelize-querystring-converter');
+
 const { Op } = require('sequelize');
 
-module.exports = (Collection) => {
+module.exports = (Collection, properties = []) => {
   const defaultPageSize = 10;
 
   const create = (req, res) => {
@@ -57,7 +59,8 @@ module.exports = (Collection) => {
   
   const list = (req, res) => {
     const { page, size, ...other } = req.query || {};
-    const filter = getFilter({ page, size, ...other });
+    const basedProperties = properties || Object.keys(Collection.rawAttributes);
+    const filter = getFilter({ page, size, basedProperties, ...other });
     console.log({ filter });
     Collection.findAndCountAll(filter)
       .then((result) => {
@@ -78,20 +81,32 @@ module.exports = (Collection) => {
    * @param { page, size, sort } options 
    * @returns 
    */
-  const getFilter = ({ page, size, sort }) => {
+  const getFilter = ({ page, size, sort, fields, basedProperties, ...other }) => {
     const limit = size ? size * 1 : defaultPageSize;
     const offset = page ? (page-1) * limit : 0;
+    const attributes = fields ? fields.split(',') : undefined;
 
-    let order = [];
-    if (sort) {
-      for (const key in sort) {
-        order.push([key, sort[key]]);
-      }
-    } else {
-      order = [['id', 'DESC']];
-    }
+    const filter = converter.convert({
+      query: {
+        sort,
+        offset,
+        limit,
+        ...other,
+      },
+      basedProperties
+    });
 
-    return { limit, offset, order };
+    // let order = [];
+    // if (sort) {
+    //   for (const key in sort) {
+    //     order.push([key, sort[key]]);
+    //   }
+    // } else {
+    //   order = [['id', 'DESC']];
+    // }
+    // return { limit, offset, order };
+    
+    return { ...filter, attributes };
   };
 
   const getPagingData = (data, page, size) => {

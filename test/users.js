@@ -24,9 +24,10 @@ describe("Users unit test for rest api", function() {
 
   it("should return list of users with pagination", function(done) {
 
-    // calling home page api
+    // calling home page api 
+    // ?page=2&size=1&sort[id]=ASC
     server
-    .get(link + '?page=2&size=1&sort[id]=ASC')
+    .get(link + '?page=2&size=1&sort=id&fields=username,email,phone')
     .expect("Content-type", /json/)
     .expect(200) // THis is HTTP response
     .end(function(err, res) {
